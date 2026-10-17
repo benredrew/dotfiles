@@ -26,3 +26,16 @@ Terminal multiplexer config (`herdr/config.toml`), mirroring Omarchy's tmux setu
 
 - `alt+left/right`, `alt+j/l`, `alt+s/f`: previous/next tab
 - `alt+up/down`, `alt+i/k`, `alt+e/d`: previous/next workspace
+
+## audio
+
+A JBL Charge 5 (Bluetooth) and a projector's built-in speaker (GPU HDMI port 3) playing together as one output, **JBL + Projector** (`combined_speakers`). Specific to this machine's hardware.
+
+- `pipewire/50-combined-speakers.conf`: the combined output. Each speaker joins when it appears and drops out when it goes away
+- `pipewire/45-projector-delay.conf`: delays the projector 165 ms to line up with the JBL's Bluetooth (SBC) latency. Measured with a mic and noise-burst cross-correlation; retune `"Delay (s)"` if the speakers move
+- `pipewire/40-low-latency.conf`: 256-sample buffers (~5 ms)
+- `wireplumber/50-projector-hdmi.conf`: routes the GPU's HDMI audio to the projector's port
+- `hypr/volume-mixer.lua`: `Super+Alt+A` toggles pavucontrol as a floating 900×1000 window (no scrolling)
+- `pavucontrol-theme/gtk.css`: loaded only by that keybind; the default device's checkmark glows in the Omarchy accent color, the others fade to grey
+
+Restarting audio drops Bluetooth, so reconnect the speaker after `./install.sh audio`.

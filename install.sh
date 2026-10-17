@@ -52,6 +52,34 @@ install_brave() {
   python3 -I "$DOTFILES/brave/ntp-prefs.py" "$profile" omarchy-frost.png
 }
 
+install_audio() {
+  echo "== audio"
+  omarchy-pkg-add pavucontrol
+
+  # Speakers: JBL Charge 5 (Bluetooth) + projector (GPU HDMI 3) as one output,
+  # with the projector delayed to match Bluetooth latency.
+  local f
+  for f in "$DOTFILES"/audio/pipewire/*.conf; do
+    link "audio/pipewire/$(basename "$f")" "$HOME/.config/pipewire/pipewire.conf.d/$(basename "$f")"
+  done
+  link audio/wireplumber/50-projector-hdmi.conf "$HOME/.config/wireplumber/wireplumber.conf.d/50-projector-hdmi.conf"
+
+  # Mixer: Super+Alt+A, with a pavucontrol-only theme that highlights the default device
+  link audio/pavucontrol-theme/gtk.css "$HOME/.local/share/themes/Pavucontrol-Highlight/gtk-4.0/gtk.css"
+  link audio/hypr/volume-mixer.lua "$HOME/.config/hypr/volume-mixer.lua"
+  local hyprland="$HOME/.config/hypr/hyprland.lua"
+  if ! grep -q 'require("hypr.volume-mixer")' "$hyprland"; then
+    printf '\n-- Volume mixer keybind + window rule (from ~/dotfiles audio module).\nrequire("hypr.volume-mixer")\n' >>"$hyprland"
+    echo "added volume-mixer to $hyprland"
+  fi
+  hyprctl reload >/dev/null || true
+
+  # Restarting audio drops Bluetooth; reconnect the speaker afterwards if needed
+  systemctl --user restart pipewire pipewire-pulse wireplumber
+  sleep 3
+  pactl set-default-sink combined_speakers
+}
+
 install_herdr() {
   echo "== herdr"
   omarchy-pkg-add herdr
@@ -61,7 +89,7 @@ install_herdr() {
 }
 
 modules=("$@")
-(( ${#modules[@]} )) || modules=(brave herdr)
+(( ${#modules[@]} )) || modules=(brave herdr audio)
 for module in "${modules[@]}"; do
   "install_$module"
 done

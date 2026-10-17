@@ -1,0 +1,24 @@
+/* Stock GTK dark theme + a loud "default device" marker for pavucontrol.
+   Loaded only by the Super+Alt+A mixer bind via GTK_THEME. In pavucontrol the
+   "Set as default" button is the only framed toggle (mute/lock are flat). */
+@import url("resource:///org/gtk/libgtk/theme/Default/Default-dark.css");
+
+/* Not default: faded grey check, no fill. */
+button.toggle:not(.flat) {
+  background: transparent;
+  box-shadow: none;
+}
+button.toggle:not(.flat) image {
+  -gtk-icon-filter: grayscale(1) opacity(0.25);
+}
+
+/* Default: solid accent fill + glow, dark check. */
+button.toggle:not(.flat):checked {
+  background: @accent_bg_color;
+  box-shadow: 0 0 0 2px @accent_bg_color, 0 0 12px 2px alpha(@accent_bg_color, 0.6);
+}
+button.toggle:not(.flat):checked image {
+  -gtk-icon-style: symbolic;
+  -gtk-icon-filter: none;
+  color: @accent_fg_color;
+}
