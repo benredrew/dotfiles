@@ -1,9 +1,14 @@
 #!/bin/bash
-# Make the JBL's own +/- buttons move the master (JBL + Projector) volume.
+# Make the JBL's own +/- buttons move the volume of whatever output is selected
+# (the default sink, as picked in the mixer): JBL + Projector, the projector, ...
 #
 # The buttons change the speaker's Bluetooth sink volume. Watch for that, pass
-# the change on to the default output (with the Omarchy OSD), and put the JBL
+# the change on to the selected output (with the Omarchy OSD), and put the JBL
 # back at its fixed level so the JBL/projector balance never drifts.
+#
+# When the JBL itself is the selected output its buttons already move it, so
+# the relay only shows the OSD; selecting something else puts it back at the
+# fixed level.
 #
 # A button press and a mixer slider look identical from here, so a change made
 # while pavucontrol is focused is taken as the slider: it becomes the new fixed
@@ -24,9 +29,17 @@ mixer_focused() {
   [[ $(hyprctl activewindow -j 2>/dev/null | jq -r '.class // empty') == org.pulseaudio.pavucontrol ]]
 }
 
+# Fails (rather than printing nothing) when pactl's JSON can't be read, which
+# happens now and then mid-change, so a bad read isn't mistaken for a disconnect.
 jbl_sink() {
-  pactl -f json list sinks 2>/dev/null |
-    jq -r --arg d "$description" 'first(.[] | select(.description == $d) | .name) // empty'
+  local json
+  json="$(pactl -f json list sinks 2>/dev/null)" || return 1
+  jq -er --arg d "$description" 'first(.[] | select(.description == $d) | .name) // ""' <<<"$json" 2>/dev/null
+}
+
+# The sink the volume keys move for the selected output (through any DSP sink).
+target_sink() {
+  omarchy-audio-output-sink 2>/dev/null
 }
 
 volume_percent() {
@@ -34,22 +47,65 @@ volume_percent() {
     awk 'NR == 1 {for (i = 1; i <= NF; i++) if ($i ~ /%$/) {sub("%", "", $i); print $i; exit}}'
 }
 
-known=""
-# Process substitution, not a pipe, so $known survives between events.
-while read -r event; do
-  [[ $event == *" on sink #"* ]] || continue
+hold_level() {
+  pactl set-sink-volume "$1" "${level}%"
+}
 
-  sink="$(jbl_sink)"
+# The same popup omarchy-audio-output-volume shows.
+show_osd() {
+  local icon=volume-high
+  if [[ $(pactl get-sink-mute "$1" 2>/dev/null) == *yes ]] || (($2 == 0)); then
+    icon=volume-muted
+  fi
+  omarchy-osd -i "$icon" -p "$2" >/dev/null 2>&1
+}
+
+known=""
+last=""
+jbl_selected=false
+# Process substitution, not a pipe, so $known survives between events.
+# "server" events are the selected output changing.
+while read -r event; do
+  [[ $event == *" on sink #"* || $event == *" on server"* ]] || continue
+
+  sink="$(jbl_sink)" || continue
   if [[ -z $sink ]]; then
     known=""
     continue
   fi
 
+  # The JBL is the selected output: its buttons already move it directly, so
+  # only the OSD is needed (not for the mixer slider, which shows its own).
+  if [[ $(target_sink) == "$sink" ]]; then
+    current="$(volume_percent "$sink")"
+    if [[ $jbl_selected != true || $sink != "$known" ]]; then
+      echo "JBL is the selected output, leaving its buttons alone"
+    elif [[ -n $current && $current != "$last" ]] && ! mixer_focused; then
+      printf 'button: JBL (selected output) at %s%%\n' "$current"
+      show_osd "$sink" "$current"
+    fi
+    jbl_selected=true
+    known="$sink"
+    last="$current"
+    continue
+  fi
+
+  # Just switched away from the JBL: back to the fixed level for the balance.
+  if [[ $jbl_selected == true ]]; then
+    jbl_selected=false
+    known="$sink"
+    echo "another output selected, holding JBL at ${level}%"
+    hold_level "$sink"
+    continue
+  fi
+
+  [[ $event == *" on sink #"* ]] || continue
+
   # Freshly connected: whatever volume it reports is its own memory, not a press.
   if [[ $sink != "$known" ]]; then
     known="$sink"
     echo "found $sink, holding it at ${level}%"
-    pactl set-sink-volume "$sink" "${level}%"
+    hold_level "$sink"
     continue
   fi
 
@@ -65,8 +121,8 @@ while read -r event; do
     continue
   fi
 
-  printf 'button: JBL at %s%%, master %+d\n' "$current" "$delta"
-  pactl set-sink-volume "$sink" "${level}%"
+  printf 'button: JBL at %s%%, selected output %+d\n' "$current" "$delta"
+  hold_level "$sink"
   if ((delta > 0)); then
     omarchy-audio-output-volume "+$delta" >/dev/null
   else

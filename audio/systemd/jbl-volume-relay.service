@@ -1,5 +1,5 @@
 [Unit]
-Description=JBL volume buttons control the master (JBL + Projector) volume
+Description=JBL volume buttons control the selected output's volume
 After=pipewire-pulse.service wireplumber.service
 PartOf=graphical-session.target
 
