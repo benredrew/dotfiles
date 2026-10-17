@@ -24,8 +24,8 @@ Bookmarks, passwords, extensions and history aren't stored here. Use Brave Sync 
 
 Terminal multiplexer config (`herdr/config.toml`), mirroring Omarchy's tmux setup: `ctrl+space` prefix, tmux sessions/windows/panes as herdr workspaces/tabs/panes.
 
-- `alt+left/right`, `alt+j/l`, `alt+s/f`: previous/next tab
-- `alt+up/down`, `alt+i/k`, `alt+e/d`: previous/next workspace
+- `alt+left/right`, `alt+j/l`, `alt+a/d`: previous/next tab
+- `alt+up/down`, `alt+i/k`, `alt+w/s`: previous/next workspace
 
 ## audio
 

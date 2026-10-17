@@ -54,8 +54,8 @@ new_tab = "prefix+c"
 rename_tab = "prefix+r"
 close_tab = "prefix+k"
 switch_tab = ["prefix+1..9", "alt+1..9"]
-previous_tab = ["prefix+p", "alt+left", "alt+j", "alt+s"]
-next_tab = ["prefix+n", "alt+right", "alt+l", "alt+f"]
+previous_tab = ["prefix+p", "alt+left", "alt+j", "alt+a"]
+next_tab = ["prefix+n", "alt+right", "alt+l", "alt+d"]
 
 # Like swap-window -t -1/+1 on M-S-Left/Right
 move_tab_previous = "alt+shift+left"
@@ -65,8 +65,8 @@ move_tab_next = "alt+shift+right"
 new_workspace = "prefix+shift+c"
 rename_workspace = "prefix+shift+r"
 close_workspace = "prefix+shift+k"
-previous_workspace = ["prefix+shift+p", "alt+up", "alt+i", "alt+e"]
-next_workspace = ["prefix+shift+n", "alt+down", "alt+k", "alt+d"]
+previous_workspace = ["prefix+shift+p", "alt+up", "alt+i", "alt+w"]
+next_workspace = ["prefix+shift+n", "alt+down", "alt+k", "alt+s"]
 
 [ui]
 accent = "blue"
