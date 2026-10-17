@@ -64,6 +64,10 @@ install_audio() {
   done
   link audio/wireplumber/50-projector-hdmi.conf "$HOME/.config/wireplumber/wireplumber.conf.d/50-projector-hdmi.conf"
 
+  # JBL's own +/- buttons move the master volume instead of just the JBL
+  link audio/bin/jbl-volume-relay "$HOME/.local/bin/jbl-volume-relay"
+  link audio/systemd/jbl-volume-relay.service "$HOME/.config/systemd/user/jbl-volume-relay.service"
+
   # Mixer: Super+Alt+A, with a pavucontrol-only theme that highlights the default device
   link audio/pavucontrol-theme/gtk.css "$HOME/.local/share/themes/Pavucontrol-Highlight/gtk-4.0/gtk.css"
   link audio/hypr/volume-mixer.lua "$HOME/.config/hypr/volume-mixer.lua"
@@ -78,6 +82,10 @@ install_audio() {
   systemctl --user restart pipewire pipewire-pulse wireplumber
   sleep 3
   pactl set-default-sink combined_speakers
+  systemctl --user daemon-reload
+  systemctl --user enable jbl-volume-relay.service
+  systemctl --user restart jbl-volume-relay.service
+  echo "audio restarted: restart Discord and other voice apps, they don't reconnect on their own"
 }
 
 install_herdr() {

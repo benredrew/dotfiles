@@ -1,0 +1,57 @@
+#!/bin/bash
+# Make the JBL's own +/- buttons move the master (JBL + Projector) volume.
+#
+# The buttons change the speaker's Bluetooth sink volume. Watch for that, pass
+# the change on to the default output (with the Omarchy OSD), and put the JBL
+# back at its fixed level so the JBL/projector balance never drifts.
+#
+#   JBL_DESCRIPTION  sink description to watch (default "JBL Charge 5")
+#   JBL_LEVEL        the JBL's fixed level in percent (default 20)
+
+set -uo pipefail
+
+description="${JBL_DESCRIPTION:-JBL Charge 5}"
+level="${JBL_LEVEL:-20}"
+
+jbl_sink() {
+  pactl -f json list sinks 2>/dev/null |
+    jq -r --arg d "$description" 'first(.[] | select(.description == $d) | .name) // empty'
+}
+
+volume_percent() {
+  pactl get-sink-volume "$1" 2>/dev/null |
+    awk 'NR == 1 {for (i = 1; i <= NF; i++) if ($i ~ /%$/) {sub("%", "", $i); print $i; exit}}'
+}
+
+known=""
+# Process substitution, not a pipe, so $known survives between events.
+while read -r event; do
+  [[ $event == *" on sink #"* ]] || continue
+
+  sink="$(jbl_sink)"
+  if [[ -z $sink ]]; then
+    known=""
+    continue
+  fi
+
+  # Freshly connected: whatever volume it reports is its own memory, not a press.
+  if [[ $sink != "$known" ]]; then
+    known="$sink"
+    echo "found $sink, holding it at ${level}%"
+    pactl set-sink-volume "$sink" "${level}%"
+    continue
+  fi
+
+  current="$(volume_percent "$sink")"
+  [[ -n $current ]] || continue
+  delta=$((current - level))
+  ((delta != 0)) || continue
+
+  printf 'button: JBL at %s%%, master %+d\n' "$current" "$delta"
+  pactl set-sink-volume "$sink" "${level}%"
+  if ((delta > 0)); then
+    omarchy-audio-output-volume "+$delta" >/dev/null
+  else
+    omarchy-audio-output-volume "$delta" >/dev/null
+  fi
+done < <(echo "Event 'startup' on sink #0"; pactl subscribe)

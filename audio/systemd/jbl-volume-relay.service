@@ -1,0 +1,15 @@
+[Unit]
+Description=JBL volume buttons control the master (JBL + Projector) volume
+After=pipewire-pulse.service wireplumber.service
+PartOf=graphical-session.target
+
+[Service]
+# Change the JBL's fixed level with: systemctl --user edit jbl-volume-relay
+Environment=JBL_LEVEL=20
+ExecStart=%h/.local/bin/jbl-volume-relay
+# pactl subscribe exits when audio restarts; come back with it.
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=graphical-session.target

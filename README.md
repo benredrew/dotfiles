@@ -35,7 +35,8 @@ A JBL Charge 5 (Bluetooth) and a projector's built-in speaker (GPU HDMI port 3) 
 - `pipewire/45-projector-delay.conf`: delays the projector 165 ms to line up with the JBL's Bluetooth (SBC) latency. Measured with a mic and noise-burst cross-correlation; retune `"Delay (s)"` if the speakers move
 - `pipewire/40-low-latency.conf`: 256-sample buffers (~5 ms)
 - `wireplumber/50-projector-hdmi.conf`: routes the GPU's HDMI audio to the projector's port
+- `bin/jbl-volume-relay` + `systemd/jbl-volume-relay.service`: the JBL's own +/- buttons move the master volume (with the Omarchy OSD) and the JBL snaps back to a fixed 20%, so the balance never drifts. Change the level with `systemctl --user edit jbl-volume-relay` (`JBL_LEVEL`)
 - `hypr/volume-mixer.lua`: `Super+Alt+A` toggles pavucontrol as a floating 900×1000 window (no scrolling)
 - `pavucontrol-theme/gtk.css`: loaded only by that keybind; the default device's checkmark glows in the Omarchy accent color, the others fade to grey
 
-Restarting audio drops Bluetooth, so reconnect the speaker after `./install.sh audio`.
+Restarting audio drops Bluetooth, so reconnect the speaker after `./install.sh audio`. Discord and other voice apps don't reconnect to a restarted audio server either: restart them too.
