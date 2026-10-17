@@ -5,13 +5,24 @@
 # the change on to the default output (with the Omarchy OSD), and put the JBL
 # back at its fixed level so the JBL/projector balance never drifts.
 #
+# A button press and a mixer slider look identical from here, so a change made
+# while pavucontrol is focused is taken as the slider: it becomes the new fixed
+# level instead of moving the master.
+#
 #   JBL_DESCRIPTION  sink description to watch (default "JBL Charge 5")
-#   JBL_LEVEL        the JBL's fixed level in percent (default 20)
+#   JBL_LEVEL        starting fixed level in percent (default 20), until the
+#                    slider sets one; that one is remembered in $state
 
 set -uo pipefail
 
 description="${JBL_DESCRIPTION:-JBL Charge 5}"
-level="${JBL_LEVEL:-20}"
+state="${XDG_STATE_HOME:-$HOME/.local/state}/jbl-volume-relay/level"
+level="$(cat "$state" 2>/dev/null)"
+[[ $level =~ ^[0-9]+$ ]] || level="${JBL_LEVEL:-20}"
+
+mixer_focused() {
+  [[ $(hyprctl activewindow -j 2>/dev/null | jq -r '.class // empty') == org.pulseaudio.pavucontrol ]]
+}
 
 jbl_sink() {
   pactl -f json list sinks 2>/dev/null |
@@ -46,6 +57,13 @@ while read -r event; do
   [[ -n $current ]] || continue
   delta=$((current - level))
   ((delta != 0)) || continue
+
+  if mixer_focused; then
+    level="$current"
+    mkdir -p "$(dirname "$state")" && echo "$level" >"$state"
+    echo "slider: JBL level is now ${level}%"
+    continue
+  fi
 
   printf 'button: JBL at %s%%, master %+d\n' "$current" "$delta"
   pactl set-sink-volume "$sink" "${level}%"
