@@ -29,7 +29,8 @@ install_brave() {
   link brave/systemd/brave-frost-update.path "$HOME/.config/systemd/user/brave-frost-update.path"
   link brave/systemd/brave-frost-update.service "$HOME/.config/systemd/user/brave-frost-update.service"
 
-  xdg-settings set default-web-browser brave-browser.desktop
+  # Omarchy exports BROWSER in interactive shells, which makes xdg-settings refuse
+  env -u BROWSER xdg-settings set default-web-browser brave-browser.desktop
   # Writes the theme color policy into /etc/brave (asks for sudo)
   omarchy-theme-set-browser || echo "theme color policy not applied; run omarchy-theme-set-browser later"
 
