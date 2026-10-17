@@ -1,0 +1,9 @@
+[Unit]
+Description=Watch the Omarchy wallpaper for the Brave test browser background
+
+[Path]
+# The background and theme links are replaced in this directory on change.
+PathChanged=%h/.local/state/omarchy/current
+
+[Install]
+WantedBy=default.target

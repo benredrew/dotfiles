@@ -1,0 +1,35 @@
+#!/bin/bash
+# Rebuild the frosted new-tab background for the Brave test browser from the
+# wallpaper Omarchy is showing right now: a cover-fit, blurred copy with a
+# light white veil. Writes it into your regular Brave profile, the saved test
+# profile, and every running test copy.
+#
+# Run at each test browser launch, and by brave-frost-update.path whenever the
+# Omarchy background or theme changes.
+
+set -euo pipefail
+
+link="$HOME/.local/state/omarchy/current/background"
+name=omarchy-frost.png
+tmp=$(mktemp --suffix=.png)
+trap 'rm -f "$tmp"' EXIT
+
+# The watcher fires on the first change in Omarchy's state directory, which can
+# come before the background link is switched. Let it settle, and rebuild if
+# the wallpaper changes again while the image is being made.
+[ "${1:-}" = --now ] || sleep 1.5
+wall=
+while [ "$wall" != "$(readlink -f "$link")" ]; do
+  wall=$(readlink -f "$link")
+  [ -f "$wall" ] || exit 0
+  magick "$wall" -resize '2560x1440^' -gravity center -extent 2560x1440 +repage \
+    -blur 0x12 \
+    \( +clone -fill white -colorize 100 -alpha set -channel A -evaluate set 10% +channel \) -composite \
+    "$tmp"
+done
+
+for profile in "$HOME/.config/BraveSoftware/Brave-Browser" "$HOME/.local/share/brave-testbed/base" "${XDG_RUNTIME_DIR:-/tmp}"/brave-testbed/*; do
+  dir="$profile/Default/sanitized_background_images"
+  [ -d "$dir" ] || continue
+  cp "$tmp" "$dir/$name.new" && mv "$dir/$name.new" "$dir/$name"
+done

@@ -1,0 +1,6 @@
+[Unit]
+Description=Rebuild the Brave test browser frosted background from the wallpaper
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/brave-frost-update

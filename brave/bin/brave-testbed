@@ -1,0 +1,58 @@
+#!/bin/bash
+# Launch a Brave "test browser": window class brave-testbed, Chrome DevTools
+# remote debugging, and the customized profile saved in
+# ~/.local/share/brave-testbed/base (frosted new-tab background, vertical tabs,
+# minimal new tab page).
+#
+# The first instance runs the saved profile itself on port 9333, so changes
+# made there persist. A profile can only be open in one Brave at a time, so
+# each further instance gets a throwaway copy of it on the next free port.
+
+base="$HOME/.local/share/brave-testbed/base"
+log="$HOME/.local/state/brave-testbed.log"
+mkdir -p "$(dirname "$log")"
+exec >>"$log" 2>&1
+echo "== $(date '+%F %T') brave-testbed $*"
+
+brave-frost-update --now || echo "frost update failed"
+
+port_busy() { ss -ltn "sport = :$1" | grep -q LISTEN; }
+
+# Clear a stale lock left by a Brave that crashed (it points at host-pid).
+lock_pid=$(readlink "$base/SingletonLock" 2>/dev/null | sed 's/.*-//')
+if [ -n "$lock_pid" ] && ! kill -0 "$lock_pid" 2>/dev/null; then
+  rm -f "$base"/Singleton*
+fi
+
+port=9333
+if ! port_busy "$port" && [ ! -e "$base/SingletonLock" ]; then
+  profile="$base"
+else
+  port=9334
+  while port_busy "$port"; do
+    port=$((port + 1))
+  done
+  profile="${XDG_RUNTIME_DIR:-/tmp}/brave-testbed/$port"
+  rm -rf "$profile"
+  mkdir -p "$profile"
+  cp -a "$base/." "$profile/"
+  rm -f "$profile"/Singleton*
+fi
+
+echo "port $port, profile $profile"
+
+# Start without the "Brave quit unexpectedly" restore/crash-report prompt.
+prefs="$profile/Default/Preferences"
+if [ -f "$prefs" ]; then
+  jq -c '.profile.exit_type = "Normal" | .profile.exited_cleanly = true' "$prefs" >"$prefs.tmp" &&
+    mv "$prefs.tmp" "$prefs"
+fi
+
+exec /opt/brave-bin/brave \
+  --user-data-dir="$profile" \
+  --class=brave-testbed \
+  --no-first-run \
+  --no-default-browser-check \
+  --remote-debugging-port="$port" \
+  --ozone-platform=wayland \
+  "${@:-brave://newtab/}"
