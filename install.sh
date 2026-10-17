@@ -52,7 +52,16 @@ install_brave() {
   python3 -I "$DOTFILES/brave/ntp-prefs.py" "$profile" omarchy-frost.png
 }
 
-modules=("${@:-brave}")
+install_herdr() {
+  echo "== herdr"
+  omarchy-pkg-add herdr
+
+  # Only the config: the rest of ~/.config/herdr is sockets, logs and session state
+  link herdr/config.toml "$HOME/.config/herdr/config.toml"
+}
+
+modules=("$@")
+(( ${#modules[@]} )) || modules=(brave herdr)
 for module in "${modules[@]}"; do
   "install_$module"
 done

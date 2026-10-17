@@ -19,3 +19,10 @@ Brave as the default browser, styled to fit Omarchy:
 - `bin/brave-testbed`: a separate Brave with remote debugging and a throwaway copy of the customized profile, for testing
 
 Bookmarks, passwords, extensions and history aren't stored here. Use Brave Sync for those.
+
+## herdr
+
+Terminal multiplexer config (`herdr/config.toml`), mirroring Omarchy's tmux setup: `ctrl+space` prefix, tmux sessions/windows/panes as herdr workspaces/tabs/panes.
+
+- `alt+left/right`, `alt+j/l`, `alt+s/f`: previous/next tab
+- `alt+up/down`, `alt+i/k`, `alt+e/d`: previous/next workspace
